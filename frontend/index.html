@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMRS — Student Monitoring & Recording System</title>
+  <link rel="stylesheet" href="style.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer"></div>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-mark"><i class="ph ph-graduation-cap"></i></div>
+        <div>
+          <h1 style="color:var(--text-primary)">CTech SMRS</h1>
+          <p>Please sign in to continue</p>
+        </div>
+      </div>
+      <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label">Username</label>
+          <input type="text" id="login_user" class="form-input" placeholder="admin" required />
+        </div>
+        <div class="form-group" style="margin-bottom:24px">
+          <label class="form-label">Password</label>
+          <input type="password" id="login_pass" class="form-input" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn-login">Sign In</button>
+      </form>
+      <p style="margin-top:24px;font-size:0.75rem;color:var(--text-muted)">Default: <b>admin</b> / <b>admin123</b></p>
+    </div>
+  </div>
+
+  <div id="appContent" class="app-hidden">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark"><i class="ph ph-graduation-cap"></i></div>
+        <div class="logo-text">
+          <span class="logo-title">CTech SMRS</span>
+          <span class="logo-sub">v1.0</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">MAIN</div>
+        <a href="#" class="nav-item active" data-page="dashboard" onclick="showPage('dashboard', this)">
+          <span class="nav-icon"><i class="ph ph-squares-four"></i></span> Dashboard
+        </a>
+        <a href="#" class="nav-item" data-page="students" onclick="showPage('students', this)">
+          <span class="nav-icon"><i class="ph ph-users"></i></span> Students
+        </a>
+        <a href="#" class="nav-item" data-page="deficiencies" onclick="showPage('deficiencies', this)">
+          <span class="nav-icon"><i class="ph ph-warning-circle"></i></span> Deficiencies
+        </a>
+        <a href="#" class="nav-item" data-page="grades" onclick="showPage('grades', this)">
+          <span class="nav-icon"><i class="ph ph-file-text"></i></span> Grades
+        </a>
+        <div class="nav-section-label" style="margin-top:2rem;">RECORDS</div>
+        <a href="#" class="nav-item" data-page="curriculum" onclick="showPage('curriculum', this)">
+          <span class="nav-icon"><i class="ph ph-books"></i></span> Curriculum
+        </a>
+        <a href="#" class="nav-item" data-page="reports" onclick="showPage('reports', this)">
+          <span class="nav-icon"><i class="ph ph-chart-bar"></i></span> Reports
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-pill">
+          <div class="user-avatar">AD</div>
+          <div class="user-info">
+            <span class="user-name" id="display_username">Administrator</span>
+            <span class="user-role">Registrar Office</span>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()" style="margin-top:8px">
+          <i class="ph ph-sign-out"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <button class="menu-btn" onclick="toggleSidebar()">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-search">
+          <span class="search-icon"><i class="ph ph-magnifying-glass"></i></span>
+          <input type="text" placeholder="Search by name or student ID…" id="globalSearch"
+            oninput="handleGlobalSearch(this.value)" />
+        </div>
+        <div class="topbar-right">
+          <div class="school-badge">A.Y. 2025–2026</div>
+        </div>
+      </header>
+
+      <!-- ===================== DASHBOARD ===================== -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Overview of student records and academic standing</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost"
+              onclick="showPage('reports', document.querySelector('[data-page=reports]'))">Export</button>
+            <button class="btn btn-primary"
+              onclick="showPage('students', document.querySelector('[data-page=students]')); openModal('addStudentModal')">+
+              Add Student</button>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card stat-blue">
+            <div class="stat-top"><span class="stat-label">Total Students</span><span class="stat-icon"><i
+                  class="ph ph-users"></i></span></div>
+            <div class="stat-value" id="stat-students">—</div>
+            <div class="stat-change positive">Live from database</div>
+          </div>
+          <div class="stat-card stat-green">
+            <div class="stat-top"><span class="stat-label">Active Enrolled</span><span class="stat-icon"><i
+                  class="ph ph-file-text"></i></span></div>
+            <div class="stat-value" id="stat-active">—</div>
+            <div class="stat-change positive">Excludes graduated</div>
+          </div>
+          <div class="stat-card stat-orange">
+            <div class="stat-top"><span class="stat-label">Pending Deficiencies</span><span class="stat-icon"><i
+                  class="ph ph-warning-circle"></i></span></div>
+            <div class="stat-value" id="stat-deficiencies">—</div>
+            <div class="stat-change negative">Requires attention</div>
+          </div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <span class="chart-title">Enrollment by Year Level</span>
+              <div class="chart-legend">
+                <span class="legend-dot blue"></span>1st Year
+                <span class="legend-dot green"></span>2nd Year
+                <span class="legend-dot orange"></span>3rd Year
+                <span class="legend-dot red"></span>4th Year
+              </div>
+            </div>
+            <div class="bar-chart">
+              <div class="bar-group">
+                <div class="bar-label">BSIT</div>
+                <div class="bars">
+                  <div class="bar b1" style="--h:75%"></div>
+                  <div class="bar b2" style="--h:62%"></div>
+                  <div class="bar b3" style="--h:50%"></div>
+                  <div class="bar b4" style="--h:38%"></div>
+                </div>
+              </div>
+              <div class="bar-group">
+                <div class="bar-label">BSMAT</div>
+                <div class="bars">
+                  <div class="bar b1" style="--h:88%"></div>
+                  <div class="bar b2" style="--h:70%"></div>
+                  <div class="bar b3" style="--h:55%"></div>
+                  <div class="bar b4" style="--h:44%"></div>
+                </div>
+              </div>
+              <div class="bar-group">
+                <div class="bar-label">2-Year</div>
+                <div class="bars">
+                  <div class="bar b1" style="--h:60%"></div>
+                  <div class="bar b2" style="--h:50%"></div>
+                </div>
+              </div>
+              <div class="bar-group">
+                <div class="bar-label">1-Year</div>
+                <div class="bars">
+                  <div class="bar b1" style="--h:65%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="chart-card narrow">
+            <div class="chart-header"><span class="chart-title">Status Breakdown</span></div>
+            <div class="donut-wrap">
+              <svg viewBox="0 0 120 120" class="donut-svg">
+                <circle cx="60" cy="60" r="46" fill="none" stroke="var(--border)" stroke-width="16" />
+                <circle cx="60" cy="60" r="46" fill="none" stroke="var(--accent-blue)" stroke-width="16"
+                  stroke-dasharray="200 89" stroke-dashoffset="0" class="donut-seg" />
+                <circle cx="60" cy="60" r="46" fill="none" stroke="var(--accent-green)" stroke-width="16"
+                  stroke-dasharray="50 239" stroke-dashoffset="-200" class="donut-seg" />
+                <circle cx="60" cy="60" r="46" fill="none" stroke="var(--accent-orange)" stroke-width="16"
+                  stroke-dasharray="39 250" stroke-dashoffset="-250" class="donut-seg" />
+              </svg>
+              <div class="donut-center">
+                <span class="donut-num" id="stat-students-donut">—</span>
+                <span class="donut-lbl">Total</span>
+              </div>
+            </div>
+            <div class="donut-legend">
+              <div class="dl-item"><span class="dl-dot"
+                  style="background:var(--accent-blue)"></span><span>Enrolled</span><b>Active</b></div>
+              <div class="dl-item"><span class="dl-dot"
+                  style="background:var(--accent-green)"></span><span>Irregular</span><b>—</b></div>
+              <div class="dl-item"><span class="dl-dot"
+                  style="background:var(--accent-orange)"></span><span>Deficient</span><b>—</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">Recent Activity</span>
+            <a href="#" class="view-all">Live log</a>
+          </div>
+          <div class="activity-list" id="recentActivityList">
+            <p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">No recent activity.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== STUDENTS ===================== -->
+      <div class="page" id="page-students">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Students</h1>
+            <p class="page-subtitle">Manage and view all student records</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" onclick="loadStudents()"><i class="ph ph-arrows-clockwise"></i>
+              Refresh</button>
+            <button class="btn btn-primary" onclick="openModal('addStudentModal')">+ New Student</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="search-field">
+            <span><i class="ph ph-magnifying-glass"></i></span>
+            <input type="text" placeholder="Name or Student ID…" id="studentSearch"
+              oninput="filterStudents(this.value)" />
+          </div>
+          <select class="filter-select" id="filterCourse"
+            onchange="updateMajorOptions('filterCourse', 'filterMajor', true)">
+            <option value="">All Programs</option>
+            <option>Bachelor of Science in Industrial Technology</option>
+            <option>Associate in Mechatronics and Automation Technology</option>
+            <option>Two-Year Technical Course</option>
+            <option>One-Year Technical Course</option>
+          </select>
+          <select class="filter-select" id="filterMajor">
+            <option value="">All Majors</option>
+          </select>
+          <select class="filter-select" id="filterYear">
+            <option value="">All Years</option>
+            <option>1st Year</option>
+            <option>2nd Year</option>
+            <option>3rd Year</option>
+            <option>4th Year</option>
+          </select>
+          <select class="filter-select" id="filterSection">
+            <option value="">All Sections</option>
+            <option>A</option>
+            <option>B</option>
+            <option>C</option>
+            <option>D</option>
+            <option>E</option>
+            <option>F</option>
+            <option>G</option>
+            <option>H</option>
+            <option>I</option>
+            <option>J</option>
+            <option>K</option>
+            <option>L</option>
+            <option>M</option>
+            <option>N</option>
+            <option>O</option>
+            <option>P</option>
+            <option>Q</option>
+            <option>R</option>
+            <option>S</option>
+            <option>T</option>
+            <option>U</option>
+            <option>V</option>
+            <option>W</option>
+            <option>X</option>
+            <option>Y</option>
+            <option>Z</option>
+          </select>
+          <select class="filter-select" id="filterStatus">
+            <option value="">All Status</option>
+            <option>Regular</option>
+            <option>Irregular</option>
+            <option>Graduated</option>
+          </select>
+          <button class="btn btn-ghost"
+            onclick="document.getElementById('studentSearch').value=''; document.getElementById('filterCourse').value=''; document.getElementById('filterMajor').innerHTML='<option value=\'\'>All Majors</option>'; document.getElementById('filterYear').value=''; document.getElementById('filterSection').value=''; document.getElementById('filterStatus').value=''; filterStudents('');">Reset</button>
+        </div>
+        <div class="table-card">
+          <table class="data-table" id="studentTable">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Course</th>
+                <th>Year</th>
+                <th>Section</th>
+                <th>GWA</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span class="table-count">Loading…</span>
+        </div>
+      </div>
+
+      <!-- ===================== DEFICIENCIES ===================== -->
+      <div class="page" id="page-deficiencies">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Deficiencies</h1>
+            <p class="page-subtitle">Track and manage student academic deficiencies</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" onclick="loadDeficiencies()"><i class="ph ph-arrows-clockwise"></i>
+              Refresh</button>
+            <button class="btn btn-primary" onclick="openModal('addDeficiencyModal')">+ Record Deficiency</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="search-field">
+            <span><i class="ph ph-magnifying-glass"></i></span>
+            <input type="text" placeholder="Search by student or subject…" id="defSearch"
+              oninput="filterDeficiencies(this.value)" />
+          </div>
+          <select class="filter-select" id="filterDefCourse"
+            onchange="updateMajorOptions('filterDefCourse', 'filterDefMajor', true)">
+            <option value="">All Programs</option>
+            <option>Bachelor of Science in Industrial Technology</option>
+            <option>Associate in Mechatronics and Automation Technology</option>
+            <option>Two-Year Technical Course</option>
+            <option>One-Year Technical Course</option>
+          </select>
+          <select class="filter-select" id="filterDefMajor">
+            <option value="">All Majors</option>
+          </select>
+          <select class="filter-select" id="filterDefYear">
+            <option value="">All Years</option>
+            <option>1st Year</option>
+            <option>2nd Year</option>
+            <option>3rd Year</option>
+            <option>4th Year</option>
+          </select>
+          <select class="filter-select" id="filterDefSection">
+            <option value="">All Sections</option>
+            <option>A</option>
+            <option>B</option>
+            <option>C</option>
+            <option>D</option>
+            <option>E</option>
+            <option>F</option>
+            <option>G</option>
+            <option>H</option>
+            <option>I</option>
+            <option>J</option>
+            <option>K</option>
+            <option>L</option>
+            <option>M</option>
+            <option>N</option>
+            <option>O</option>
+            <option>P</option>
+            <option>Q</option>
+            <option>R</option>
+            <option>S</option>
+            <option>T</option>
+            <option>U</option>
+            <option>V</option>
+            <option>W</option>
+            <option>X</option>
+            <option>Y</option>
+            <option>Z</option>
+          </select>
+          <button class="btn btn-ghost" onclick="resetDefFilters()">Reset</button>
+        </div>
+        <div class="def-stats">
+          <div class="def-stat-card">
+            <span class="def-stat-num" id="def-stat-total" style="color:var(--accent-orange)">—</span>
+            <span class="def-stat-lbl">Total Active</span>
+          </div>
+          <div class="def-stat-card">
+            <span class="def-stat-num" id="def-stat-inc" style="color:var(--accent-red)">—</span>
+            <span class="def-stat-lbl">Incomplete</span>
+          </div>
+          <div class="def-stat-card">
+            <span class="def-stat-num" id="def-stat-fail" style="color:var(--accent-blue)">—</span>
+            <span class="def-stat-lbl">Failed Subjects</span>
+          </div>
+          <div class="def-stat-card">
+            <span class="def-stat-num" id="def-stat-res" style="color:var(--accent-green)">—</span>
+            <span class="def-stat-lbl">Resolved</span>
+          </div>
+        </div>
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Student Name</th>
+                <th>Subject</th>
+                <th>Type</th>
+                <th>Semester</th>
+                <th>Deadline</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="deficienciesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===================== GRADES ===================== -->
+      <div class="page" id="page-grades">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Grades</h1>
+            <p class="page-subtitle">View and manage student grade records</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost" onclick="loadGrades()"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+            <button class="btn btn-primary" onclick="openModal('addGradeModal')">+ Add Grade</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <div class="search-field">
+            <span><i class="ph ph-magnifying-glass"></i></span>
+            <input type="text" placeholder="Search by student or subject…" id="gradeSearch"
+              oninput="filterGrades(this.value)" />
+          </div>
+          <select class="filter-select" id="filterGradeCourse"
+            onchange="updateMajorOptions('filterGradeCourse', 'filterGradeMajor', true)">
+            <option value="">All Programs</option>
+            <option>Bachelor of Science in Industrial Technology</option>
+            <option>Associate in Mechatronics and Automation Technology</option>
+            <option>Two-Year Technical Course</option>
+            <option>One-Year Technical Course</option>
+          </select>
+          <select class="filter-select" id="filterGradeMajor">
+            <option value="">All Majors</option>
+          </select>
+          <select class="filter-select" id="filterGradeYear">
+            <option value="">All Years</option>
+            <option>1st Year</option>
+            <option>2nd Year</option>
+            <option>3rd Year</option>
+            <option>4th Year</option>
+          </select>
+          <select class="filter-select" id="filterGradeSection">
+            <option value="">All Sections</option>
+            <option>A</option>
+            <option>B</option>
+            <option>C</option>
+            <option>D</option>
+            <option>E</option>
+            <option>F</option>
+            <option>G</option>
+            <option>H</option>
+            <option>I</option>
+            <option>J</option>
+            <option>K</option>
+            <option>L</option>
+            <option>M</option>
+            <option>N</option>
+            <option>O</option>
+            <option>P</option>
+            <option>Q</option>
+            <option>R</option>
+            <option>S</option>
+            <option>T</option>
+            <option>U</option>
+            <option>V</option>
+            <option>W</option>
+            <option>X</option>
+            <option>Y</option>
+            <option>Z</option>
+          </select>
+          <button class="btn btn-ghost" onclick="resetGradeFilters()">Reset</button>
+        </div>
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Subject Code</th>
+                <th>Subject Name</th>
+                <th>Units</th>
+                <th>Midterm</th>
+                <th>Finals</th>
+                <th>Final Grade</th>
+                <th>Remarks</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="gradesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+
+
+      <!-- ===================== CURRICULUM ===================== -->
+      <div class="page" id="page-curriculum">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Curriculum</h1>
+            <p class="page-subtitle">Program curricula and subject structures</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary"
+              onclick="openAddCurriculumModal(document.querySelector('.curr-tab.active')?.dataset?.course || '')">+ Add
+              to
+              Curriculum</button>
+          </div>
+        </div>
+        <div class="curriculum-tabs">
+          <button class="curr-tab active" data-course="Bachelor of Science in Industrial Technology"
+            onclick="switchCurrTab(this, 'bsit')">BSIT</button>
+          <button class="curr-tab" data-course="Associate in Mechatronics and Automation Technology"
+            onclick="switchCurrTab(this, 'mechatronics')">Mechatronics</button>
+          <button class="curr-tab" data-course="Two-Year Technical Course"
+            onclick="switchCurrTab(this, 'two-year')">2-Year
+            Technical</button>
+          <button class="curr-tab" data-course="One-Year Technical Course"
+            onclick="switchCurrTab(this, 'one-year')">1-Year
+            Programs</button>
+          <div style="flex:1"></div>
+          <select class="filter-select" id="currMajorFilter" style="margin:4px"
+            onchange="const activeTab = document.querySelector('.curr-tab.active'); if(activeTab) activeTab.click();">
+            <option value="">All Majors</option>
+          </select>
+        </div>
+        <div class="curr-grid" id="currContent">
+          <p style="color:var(--text-muted);padding:1rem;">Click a program tab to view its curriculum.</p>
+        </div>
+      </div>
+
+      <!-- ===================== REPORTS ===================== -->
+      <div class="page" id="page-reports">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Reports</h1>
+            <p class="page-subtitle">Generate and download academic reports as CSV</p>
+          </div>
+        </div>
+        <div class="reports-grid">
+          <div class="report-card">
+            <div class="report-icon" style="background:var(--accent-blue)20;color:var(--accent-blue)"><i
+                class="ph ph-users"></i></div>
+            <div class="report-info">
+              <div class="report-title">Enrollment Report</div>
+              <div class="report-desc">All enrolled students by course and year level</div>
+            </div>
+            <button class="btn btn-ghost sm" onclick="downloadReport('enrollment')">Download CSV</button>
+          </div>
+          <div class="report-card">
+            <div class="report-icon" style="background:var(--accent-orange)20;color:var(--accent-orange)"><i
+                class="ph ph-warning-circle"></i></div>
+            <div class="report-info">
+              <div class="report-title">Deficiency Report</div>
+              <div class="report-desc">List of students with active deficiencies</div>
+            </div>
+            <button class="btn btn-ghost sm" onclick="downloadReport('deficiency')">Download CSV</button>
+          </div>
+          <div class="report-card">
+            <div class="report-icon" style="background:var(--accent-green)20;color:var(--accent-green)"><i
+                class="ph ph-file-text"></i></div>
+            <div class="report-info">
+              <div class="report-title">Grade Summary</div>
+              <div class="report-desc">All recorded grades with remarks</div>
+            </div>
+            <button class="btn btn-ghost sm" onclick="downloadReport('grades')">Download CSV</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ===================== MODALS ===================== -->
+
+    <!-- STUDENT PROFILE MODAL -->
+    <div class="modal-overlay" id="studentProfileModal">
+      <div class="modal large">
+        <div class="modal-header">
+          <div class="modal-profile-top">
+            <div class="profile-avatar" id="profileAvatar">?</div>
+            <div>
+              <h2 class="modal-title" id="profileName">—</h2>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                <span class="id-cell" id="profileId">—</span>
+                <span class="status-badge regular" id="profileStatus">—</span>
+              </div>
+            </div>
+          </div>
+          <button class="modal-close" onclick="closeModal('studentProfileModal')">✕</button>
+        </div>
+        <div class="modal-tabs">
+          <button class="modal-tab active" onclick="switchTab(this, 'info')">Information</button>
+          <button class="modal-tab" onclick="switchTab(this, 'grades-tab')">Grades</button>
+          <button class="modal-tab" onclick="switchTab(this, 'defic-tab')">Deficiencies</button>
+        </div>
+        <div class="modal-body">
+          <!-- INFO TAB -->
+          <div class="modal-tab-content active" id="tab-info">
+            <div class="info-grid">
+              <div class="info-section">
+                <div class="info-section-title">Personal Information</div>
+                <div class="info-row"><span class="info-label">Full Name</span><span class="info-value"
+                    id="info-fullname">—</span></div>
+                <div class="info-row"><span class="info-label">Date of Birth</span><span class="info-value"
+                    id="info-birthday">—</span></div>
+                <div class="info-row"><span class="info-label">Gender</span><span class="info-value"
+                    id="info-gender">—</span></div>
+                <div class="info-row"><span class="info-label">Contact No.</span><span class="info-value"
+                    id="info-contact">—</span></div>
+                <div class="info-row"><span class="info-label">Email</span><span class="info-value"
+                    id="info-email">—</span></div>
+              </div>
+              <div class="info-section">
+                <div class="info-section-title">Academic Information</div>
+                <div class="info-row"><span class="info-label">Course</span><span class="info-value"
+                    id="info-course">—</span></div>
+                <div class="info-row"><span class="info-label">Year Level</span><span class="info-value"
+                    id="info-year">—</span></div>
+                <div class="info-row"><span class="info-label">Section</span><span class="info-value"
+                    id="info-section">—</span></div>
+              </div>
+              <div class="info-section full-width">
+                <div class="info-section-title">Address</div>
+                <div class="info-row"><span class="info-label">Address</span><span class="info-value"
+                    id="info-address">—</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- GRADES TAB -->
+          <div class="modal-tab-content" id="tab-grades-tab">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Subject</th>
+                  <th>Units</th>
+                  <th>Grade</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="profileGradesBody">
+                <tr>
+                  <td colspan="5" style="text-align:center;color:var(--text-muted)">Select a student to view grades.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="gwa-summary" id="profileGwaSummary"></div>
+          </div>
+          <!-- DEFICIENCIES TAB -->
+          <div class="modal-tab-content" id="tab-defic-tab">
+            <div id="profileDeficiencies">
+              <p class="empty-state">No deficiency data loaded.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('studentProfileModal')">Close</button>
+          <button class="btn btn-primary" onclick="openEditStudent()">Edit Record</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD STUDENT MODAL -->
+    <div class="modal-overlay" id="addStudentModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Add New Student</h2>
+          <button class="modal-close" onclick="closeModal('addStudentModal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Student ID <span style="color:var(--accent-red)">*</span></label>
+              <input type="text" class="form-input" id="std_id" placeholder="23-00750" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name <span style="color:var(--accent-red)">*</span></label>
+              <input type="text" class="form-input" id="std_last_name" placeholder="Dela Cruz" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">First Name <span style="color:var(--accent-red)">*</span></label>
+              <input type="text" class="form-input" id="std_first_name" placeholder="Juan" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Middle Name</label>
+              <input type="text" class="form-input" id="std_middle_name" placeholder="(optional)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" class="form-input" id="std_dob" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <select class="form-input" id="std_gender">
+                <option value="">Select…</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Number</label>
+              <input type="text" class="form-input" id="std_contact" placeholder="+63 9XX XXX XXXX" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="std_email" placeholder="email@example.com" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Program <span style="color:var(--accent-red)">*</span></label>
+              <select class="form-input" id="std_program" onchange="updateMajorOptions('std_program', 'std_major')">
+                <option value="">Select…</option>
+                <option>Bachelor of Science in Industrial Technology</option>
+                <option>Associate in Mechatronics and Automation Technology</option>
+                <option>Two-Year Technical Course</option>
+                <option>One-Year Technical Course</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Major / Specialization</label>
+              <select class="form-input" id="std_major">
+                <option value="">Select Program first…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Year Level</label>
+              <select class="form-input" id="std_year">
+                <option value="">Select…</option>
+                <option>1st Year</option>
+                <option>2nd Year</option>
+                <option>3rd Year</option>
+                <option>4th Year</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Section <span style="color:var(--accent-red)">*</span></label>
+              <input type="text" class="form-input" id="std_section" placeholder="e.g. A" maxlength="1"
+                oninput="this.value = this.value.toUpperCase()" pattern="[A-Z]"
+                title="Please enter a single letter (A-Z)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-input" id="std_status">
+                <option>Regular</option>
+                <option>Irregular</option>
+              </select>
+            </div>
+            <div class="form-group full-span">
+              <label class="form-label">Complete Address</label>
+              <textarea class="form-input" id="std_address" rows="2"
+                placeholder="Street, Barangay, City, Province, ZIP"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('addStudentModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveStudent()">Save Student</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDIT STUDENT MODAL -->
+    <div class="modal-overlay" id="editStudentModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Edit Student Record</h2>
+          <button class="modal-close" onclick="closeModal('editStudentModal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="edit_std_id" />
+          <input type="hidden" id="edit_std_number_hidden" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Last Name</label>
+              <input type="text" class="form-input" id="edit_last_name" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">First Name</label>
+              <input type="text" class="form-input" id="edit_first_name" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Middle Name</label>
+              <input type="text" class="form-input" id="edit_middle_name" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date of Birth</label>
+              <input type="date" class="form-input" id="edit_dob" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <select class="form-input" id="edit_gender">
+                <option value="">Select…</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Number</label>
+              <input type="text" class="form-input" id="edit_contact" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="edit_email" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Program</label>
+              <select class="form-input" id="edit_program" onchange="updateMajorOptions('edit_program', 'edit_major')">
+                <option value="">Select…</option>
+                <option>Bachelor of Science in Industrial Technology</option>
+                <option>Associate in Mechatronics and Automation Technology</option>
+                <option>Two-Year Technical Course</option>
+                <option>One-Year Technical Course</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Major</label>
+              <select class="form-input" id="edit_major">
+                <option value="">Select Program first…</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Year Level</label>
+              <select class="form-input" id="edit_year">
+                <option value="">Select…</option>
+                <option>1st Year</option>
+                <option>2nd Year</option>
+                <option>3rd Year</option>
+                <option>4th Year</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Section</label>
+              <input type="text" class="form-input" id="edit_section" placeholder="e.g. A" maxlength="1"
+                oninput="this.value = this.value.toUpperCase()" pattern="[A-Z]"
+                title="Please enter a single letter (A-Z)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-input" id="edit_status">
+                <option>Regular</option>
+                <option>Irregular</option>
+                <option>Graduated</option>
+              </select>
+            </div>
+            <div class="form-group full-span">
+              <label class="form-label">Address</label>
+              <textarea class="form-input" id="edit_address" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('editStudentModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="updateStudent()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD DEFICIENCY MODAL -->
+    <div class="modal-overlay" id="addDeficiencyModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 class="modal-title">Record Deficiency</h2>
+          <button class="modal-close" onclick="closeModal('addDeficiencyModal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Student ID <span style="color:var(--accent-red)">*</span></label>
+              <input type="text" class="form-input" id="def_std_id" placeholder="Enter numeric ID" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Student Name (auto-filled)</label>
+              <input type="text" class="form-input" id="def_std_name" placeholder="Auto-filled" readonly />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Subject Code <span style="color:var(--accent-red)">*</span></label>
+              <input type="text" class="form-input" id="def_subj_code" placeholder="e.g. MATH101" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Subject Name</label>
+              <input type="text" class="form-input" id="def_subj_name" placeholder="Auto-filled or enter manually" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deficiency Type <span style="color:var(--accent-red)">*</span></label>
+              <select class="form-input" id="def_type">
+                <option value="">Select…</option>
+                <option>Incomplete</option>
+                <option>Failed</option>
+                <option>Dropped</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Semester</label>
+              <select class="form-input" id="def_semester">
+                <option>1st Semester 2025–2026</option>
+                <option>2nd Semester 2025–2026</option>
+                <option>Summer 2025</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Resolution Deadline</label>
+              <input type="date" class="form-input" id="def_deadline" />
+            </div>
+            <div class="form-group full-span">
+              <label class="form-label">Remarks</label>
+              <textarea class="form-input" id="def_remarks" rows="2" placeholder="Additional notes…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('addDeficiencyModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveDeficiency()">Record Deficiency</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD GRADE MODAL -->
+    <div class="modal-overlay" id="addGradeModal">
+      <div class="modal narrow">
+        <div class="modal-header">
+          <h2 class="modal-title">Add Grade</h2>
+          <button class="modal-close" onclick="closeModal('addGradeModal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem;">Subject must exist in the Subjects
+            list. Grade scale: 1.00 (highest) – 5.00 (failed).</p>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Student ID <span style="color:var(--accent-red)">*</span></label>
+            <input type="text" class="form-input" id="gradeStudentId" placeholder="e.g. 23-00750" />
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Subject Code <span style="color:var(--accent-red)">*</span></label>
+            <input type="text" class="form-input" id="gradeSubjCode" placeholder="e.g. CS101" />
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Midterm Grade</label>
+            <input type="number" step="0.25" min="1" max="5" class="form-input" id="gradeMidterm"
+              placeholder="e.g. 1.75" />
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Finals Grade</label>
+            <input type="number" step="0.25" min="1" max="5" class="form-input" id="gradeFinals"
+              placeholder="e.g. 2.00" />
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Final Grade <span style="color:var(--accent-red)">*</span></label>
+            <input type="number" step="0.25" min="1" max="5" class="form-input" id="gradeValue"
+              placeholder="e.g. 1.75" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Semester</label>
+            <select class="form-input" id="gradeSemester">
+              <option>1st Semester 2025–2026</option>
+              <option>2nd Semester 2025–2026</option>
+              <option>Summer 2025</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('addGradeModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveGrade()">Save Grade</button>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- ADD CURRICULUM MODAL -->
+    <div class="modal-overlay" id="addCurriculumModal">
+      <div class="modal narrow">
+        <div class="modal-header">
+          <h2 class="modal-title">Add Subject to Curriculum</h2>
+          <button class="modal-close" onclick="closeModal('addCurriculumModal')">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem;">If the subject doesn't exist yet, it
+            will be created automatically.</p>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Program</label>
+            <input type="text" class="form-input" id="curr_course" readonly />
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Major</label>
+            <select class="form-input" id="curr_major">
+              <option value="">No major selected</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Year Level</label>
+            <select class="form-input" id="curr_year">
+              <option value="1">1st Year</option>
+              <option value="2">2nd Year</option>
+              <option value="3">3rd Year</option>
+              <option value="4">4th Year</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Semester</label>
+            <select class="form-input" id="curr_semester">
+              <option value="1">1st Semester</option>
+              <option value="2">2nd Semester</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Subject Code <span style="color:var(--accent-red)">*</span></label>
+            <input type="text" class="form-input" id="curr_subj_code" placeholder="e.g. MATH101" />
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Subject Name</label>
+            <input type="text" class="form-input" id="curr_subj_name" placeholder="e.g. Calculus I" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Units</label>
+            <input type="number" class="form-input" id="curr_units" value="3" min="1" max="6" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeModal('addCurriculumModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveCurriculumEntry()">Add to Curriculum</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end appContent -->
+
+  <script src="app.js"></script>
+</body>
+
+</html>
